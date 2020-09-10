@@ -61,11 +61,14 @@
         </DelphiCompile>
         <DCCReference Include="rtl.dcp"/>
         <DCCReference Include="vcl.dcp"/>
+        <DCCReference Include="vclimg.dcp"/>
         <DCCReference Include="..\..\Source\IconFontsImage.pas"/>
+        <DCCReference Include="..\..\Source\IconFontsImageListBase.pas"/>
+        <DCCReference Include="..\..\Source\IconFontsItems.pas"/>
+        <DCCReference Include="..\..\Source\IconFontsVirtualImageList.pas"/>
+        <DCCReference Include="..\..\Source\IconFontsImageCollection.pas"/>
         <DCCReference Include="..\..\Source\IconFontsImageList.pas"/>
         <DCCReference Include="..\..\Source\IconFontsUtils.pas"/>
-        <DCCReference Include="..\..\Source\Fonts\Icons.MaterialDesign.pas"/>
-        <DCCReference Include="..\..\Source\Fonts\Icons.Utils.pas"/>
         <BuildConfiguration Include="Debug">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

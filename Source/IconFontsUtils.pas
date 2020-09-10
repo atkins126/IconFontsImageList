@@ -32,18 +32,27 @@ interface
 uses
   Classes
   , ImgList
-  , IconFontsImageList
+  , IconFontsImageListBase
+  , IconFontsImageCollection
+  , Windows
   , Graphics
   , ComCtrls;
 
-function UpdateIconFontListView(const AListView: TListView): Integer;
+{$IFDEF D2010+}
+function SaveToPngFiles(ImageList: TIconFontsImageListBase;
+  const AOutFolder: string): Integer;
+{$ENDIF}
+function UpdateIconFontListView(const AListView: TListView;
+  const ACategory: string = ''): Integer;
 function UpdateIconFontListViewCaptions(const AListView: TListView;
   const AShowCaption: Boolean = True): Integer;
-procedure UpdateIconFontsColorByStyle(const IconFontsImageList: TIconFontsImageList;
-  const AReplaceCustomColors: Boolean = False);
-procedure UpdateDisabledImageList(const ASourceImageList, ADestImageList: TIconFontsImageList;
+procedure UpdateIconFontsColorByStyle(const IconFontsImageList: TIconFontsImageListBase;
+  const AReplaceCustomColors: Boolean = False); overload;
+procedure UpdateIconFontsColorByStyle(const IconFontsImageCollection: TIconFontsImageCollection;
+  const AReplaceCustomColors: Boolean = False); overload;
+procedure UpdateDisabledImageList(const ASourceImageList, ADestImageList: TIconFontsImageListBase;
   const APercent: Integer = 30; const AReplaceCustomColors: Boolean = False);
-procedure UpdateHotImageList(const ASourceImageList, ADestImageList: TIconFontsImageList;
+procedure UpdateHotImageList(const ASourceImageList, ADestImageList: TIconFontsImageListBase;
   const APercent: Integer = 30; const AResizePercent: Integer = 0;
   const AReplaceCustomColors: Boolean = False);
 function DarkerColor(AColor: TColor; APercent: Integer): TColor;
@@ -52,44 +61,139 @@ function DisabledColor(AColor: TColor; APercent: Integer): TColor;
 function IsLightColor(const AColor: TColor): Boolean;
 function HotColor(AColor: TColor; const APercent: Integer): TColor;
 function GrayscaleColor(AColor : TColor) : TColor;
-function IsFontIconValidValue(const AFontIconDec: Integer): Boolean;
 
 implementation
 
 uses
   SysUtils
-  , Windows
+  {$IFDEF D2010+}
+  , PngImage
+  {$ENDIF}
+  {$IFDEF D10_3+}
+  , Vcl.VirtualImageList
+  {$ENDIF}
   , Themes
+  , IconFontsItems
   ;
 
-function IsFontIconValidValue(const AFontIconDec: Integer): Boolean;
+{$IFDEF D2010+}
+// Source: http://www.entwickler-ecke.de/topic_Bitmap+pf32bit+mit+Alpha+afPremultipied+zu+PNG+speichern_103159,0.html
+type
+  TRGB = packed record B, G, R: byte end;
+  TRGBA = packed record B, G, R, A: byte end;
+  TRGBAArray = array[0..0] of TRGBA;
+
+function PNG4TransparentBitMap(aBitmap: TBitmap): TPNGImage;
+var
+  X, Y: integer;
+  BmpRGBA: ^TRGBAArray;
+  PngRGB: ^TRGB;
 begin
-  Result := ((AFontIconDec >= $0000) and (AFontIconDec <= $D7FF)) or
-    ((AFontIconDec >= $E000) and (AFontIconDec < $FFFF)) or  //D800 to DFFF are reserved for code point values for Surrogate Pairs
-    ((AFontIconDec >= $010000) and (AFontIconDec <= $10FFFF)); //Surrogate Pairs
+  //201011 Thomas Wassermann
+  Result := TPNGImage.CreateBlank(COLOR_RGBALPHA, 8, aBitmap.Width , aBitmap.Height);
+
+  Result.CreateAlpha;
+  Result.Canvas.CopyMode:= cmSrcCopy;
+  Result.Canvas.Draw(0, 0, aBitmap);
+
+  for Y := 0 to Pred(aBitmap.Height) do
+  begin
+    BmpRGBA := aBitmap.ScanLine[Y];
+    PngRGB:= Result.Scanline[Y];
+
+    for X := 0 to Pred(aBitmap.width) do
+    begin
+      Result.AlphaScanline[Y][X] :=  BmpRGBA[X].A;
+      if aBitmap.AlphaFormat in [afDefined, afPremultiplied] then
+      begin
+        if BmpRGBA[X].A <> 0 then
+        begin
+          PngRGB^.B := Round(BmpRGBA[X].B / BmpRGBA[X].A * 255);
+          PngRGB^.R := Round(BmpRGBA[X].R / BmpRGBA[X].A * 255);
+          PngRGB^.G := Round(BmpRGBA[X].G / BmpRGBA[X].A * 255);
+        end else begin
+          PngRGB^.B := Round(BmpRGBA[X].B * 255);
+          PngRGB^.R := Round(BmpRGBA[X].R * 255);
+          PngRGB^.G := Round(BmpRGBA[X].G * 255);
+        end;
+      end;
+      Inc(PngRGB);
+    end;
+  end;
 end;
 
-function UpdateIconFontListView(const AListView: TListView): Integer;
+function SaveToPngFiles(ImageList: TIconFontsImageListBase;
+  const AOutFolder: string): Integer;
+var
+  LImagePng: TPngImage;
+  LBitmap: TBitmap;
+  LIconName, LFileName: string;
+  I: Integer;
+  LItem: TIconFontItem;
+begin
+  Result := 0;
+  for I := 0 to ImageList.IconFontItems.Count -1 do
+  begin
+    LItem := ImageList.IconFontItems[I];
+    LBitmap := nil;
+    LImagePng := nil;
+    try
+      LBitmap := LItem.GetBitmap(ImageList.Width, ImageList.Height, True);
+      LImagePng := PNG4TransparentBitMap(LBitmap);
+      if LItem.IconName <> '' then
+        LIconName := Format('%s - ($%s)', [LItem.IconName, LItem.FontIconHex])
+      else
+        LIconName := Format('%d - ($%s)', [LItem.Index, LItem.FontIconHex]);
+      LFileName := IncludeTrailingPathDelimiter(AOutFolder)+
+        StringReplace(LIconName, '\', '_',[rfReplaceAll])+'.png';
+      LImagePng.SaveToFile(LFileName);
+      Inc(Result);
+    finally
+      LBitmap.Free;
+      LImagePng.Free;
+    end;
+  end;
+end;
+{$ENDIF}
+
+function UpdateIconFontListView(const AListView: TListView;
+  const ACategory: string = ''): Integer;
 var
   I: Integer;
   LItem: TIconFontItem;
   LListItem: TListItem;
-  LIconFontsImageList: TIconFontsImageList;
+  LIconFontItems: TIconFontItems;
 begin
-  LIconFontsImageList := AListView.LargeImages as TIconFontsImageList;
+  LIconFontItems := nil;
+  if AListView.LargeImages is TIconFontsImageListBase then
+    LIconFontItems := TIconFontsImageListBase(AListView.LargeImages).IconFontItems;
+  {$IFDEF D10_3+}
+  if (AListView.LargeImages is TVirtualImageList) and
+    (TVirtualImageList(AListView.LargeImages).ImageCollection is TIconFontsImageCollection) then
+    LIconFontItems := TIconFontsImageCollection(TVirtualImageList(AListView.LargeImages).ImageCollection).IconFontItems;
+  {$ENDIF}
   AListView.Items.BeginUpdate;
   try
     AListView.Clear;
-    Result := LIconFontsImageList.IconFontItems.Count;
-    for I := 0 to Result -1 do
+    if LIconFontItems <> nil then
     begin
-      LItem := LIconFontsImageList.IconFontItems[I];
-      LListItem := AListView.Items.Add;
-      LListItem.Caption := Format('$%s%s%s',
-        [LItem.FontIconHex,sLineBreak,
-         Litem.IconName]);
-      LListItem.ImageIndex := I;
-    end;
+      Result := LIconFontItems.Count;
+      for I := 0 to Result -1 do
+      begin
+        LItem := LIconFontItems[I];
+        if (ACategory = '') or
+         (LowerCase(ACategory) = LowerCase(LItem.Category)) then
+        begin
+          LListItem := AListView.Items.Add;
+          LListItem.Caption := Format('$%s%s%s',
+            [LItem.FontIconHex,sLineBreak,
+             Litem.Name]);
+          LListItem.ImageIndex := I;
+        end;
+      end;
+    end
+    else
+      Result := 0;
   finally
     AListView.Items.EndUpdate;
   end;
@@ -101,9 +205,9 @@ var
   I: Integer;
   LItem: TIconFontItem;
   LListItem: TListItem;
-  LIconFontsImageList: TIconFontsImageList;
+  LIconFontsImageList: TIconFontsImageListBase;
 begin
-  LIconFontsImageList := AListView.LargeImages as TIconFontsImageList;
+  LIconFontsImageList := AListView.LargeImages as TIconFontsImageListBase;
   AListView.Items.BeginUpdate;
   try
     Result := AListView.Items.Count;
@@ -115,7 +219,7 @@ begin
       begin
         LListItem.Caption := Format('$%s%s%s',
           [LItem.FontIconHex,sLineBreak,
-           Litem.IconName]);
+           Litem.Name]);
       end
       else
         LListItem.Caption := '';
@@ -125,7 +229,7 @@ begin
   end;
 end;
 
-procedure UpdateIconFontsColorByStyle(const IconFontsImageList: TIconFontsImageList;
+procedure UpdateIconFontsColorByStyle(const IconFontsImageList: TIconFontsImageListBase;
   const AReplaceCustomColors: Boolean = False);
 {$IFDEF DXE+}
 var
@@ -140,14 +244,29 @@ begin
   {$ENDIF}
 end;
 
-procedure UpdateDisabledImageList(const ASourceImageList, ADestImageList: TIconFontsImageList;
+procedure UpdateIconFontsColorByStyle(const IconFontsImageCollection: TIconFontsImageCollection;
+  const AReplaceCustomColors: Boolean = False); overload;
+{$IFDEF DXE+}
+var
+  LStyleFontColor, LStyleMaskColor: TColor;
+{$ENDIF}
+begin
+  {$IFDEF DXE+}
+  LStyleFontColor := TStyleManager.ActiveStyle.GetStyleFontColor(sfButtonTextNormal);
+  LStyleMaskColor := TStyleManager.ActiveStyle.GetStyleFontColor(sfButtonTextDisabled);
+  IconFontsImageCollection.UpdateIconsAttributes(LStyleFontColor, LStyleMaskColor,
+    AReplaceCustomColors);
+  {$ENDIF}
+end;
+
+procedure UpdateDisabledImageList(const ASourceImageList, ADestImageList: TIconFontsImageListBase;
   const APercent: Integer = 30; const AReplaceCustomColors: Boolean = False);
 begin
   ADestImageList.Assign(ASourceImageList);
   ADestImageList.FontColor := DisabledColor(ADestImageList.FontColor, APercent);
 end;
 
-procedure UpdateHotImageList(const ASourceImageList, ADestImageList: TIconFontsImageList;
+procedure UpdateHotImageList(const ASourceImageList, ADestImageList: TIconFontsImageListBase;
   const APercent: Integer = 30; const AResizePercent: Integer = 0;
   const AReplaceCustomColors: Boolean = False);
 begin

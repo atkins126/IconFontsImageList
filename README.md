@@ -1,11 +1,15 @@
 # IconFontsImageList [![License](https://img.shields.io/badge/License-Apache%202.0-yellowgreen.svg)](https://opensource.org/licenses/Apache-2.0)
 
-## An extended ImageList for Delphi (VCL & FMX) to simple use and manage Icon Fonts (with GDI+ support)
+## Components to simplify use of "Icon fonts": resize, color, opacity and more... with full support for High-DPI apps. Rendering optimized with GDI+
+
+### Actual official version 2.3 (VCL) and 1.5.1 (FMX)
 
 | Component | Description |
 | - | - |
-| ![https://github.com/EtheaDev/IconFontsImageList/blob/master/Packages/IconFontsImageListComponentIcon.png](https://github.com/EtheaDev/IconFontsImageList/blob/master/Packages/IconFontsImageListComponentIcon.png) | **IconFontsImageList is an extended ImageList for Delphi (VCL+FMX) to simplify use of Icon Fonts (resize, color, grayscale and more...)** |
-| ![https://github.com/EtheaDev/IconFontsImageList/blob/master/Packages/IconFontsImageComponentIcon.png](https://github.com/EtheaDev/IconFontsImageList/blob/master/Packages/IconFontsImageComponentIcon.png) | **IconFontsImage is an extended Image component for Delphi (VCL+FMX) to show any Icon Font directly or included into a an IconFontsImageList with all functionality (stretch, color, opacity, grayscale and more...)** |
+| ![https://github.com/EtheaDev/IconFontsImageList/blob/master/Packages/IconFontsImageCollectionComponentIcon.png](https://github.com/EtheaDev/IconFontsImageList/blob/master/Packages/IconFontsImageCollectionComponentIcon.png) | **TIconFontsImageCollection** is collection of "Icon Fonts" for Delphi to provide a centralized list of images for IconFontsVirtualImageList (only for VCL) |
+| ![https://github.com/EtheaDev/IconFontsImageList/blob/master/Packages/IconFontsVirtualImageListComponentIcon.png](https://github.com/EtheaDev/IconFontsImageList/blob/master/Packages/IconFontsVirtualImageListComponentIcon.png) | **TIconFontsVirtualImageList** is a special "virtual" ImageList for Delphi linked to an IconFontsImageCollection (only for VCL) to simplify use of "Font Icons" (resize, color and more...) |
+| ![https://github.com/EtheaDev/IconFontsImageList/blob/master/Packages/IconFontsImageComponentIcon.png](https://github.com/EtheaDev/IconFontsImageList/blob/master/Packages/IconFontsImageComponentIcon.png) | **TIconFontImage** is an extended Image component for Delphi (VCL+FMX) to show any Icon Font directly or included into a an IconFontsImageList with all functionality (stretch, color, opacity and more...) |
+| ![https://github.com/EtheaDev/IconFontsImageList/blob/master/Packages/IconFontsImageListComponentIcon.png](https://github.com/EtheaDev/IconFontsImageList/blob/master/Packages/IconFontsImageListComponentIcon.png) | **TIconFontsImageList** is an extended ImageList for Delphi (VCL+FMX) to simplify use of Icon Fonts (resize, color and more...). Use only for simple application with one form. |
 
 ![Delphi 10.4 Sydney Support](/Demo/Images/SupportingDelphi.jpg)
 
@@ -17,13 +21,36 @@ Sample image of FMX version
 
 Follow the [guide in Wiki section](https://github.com/EtheaDev/IconFontsImageList/wiki) to known how to use those components to modernize your Delphi VCL or FMX applications scalable, colored and beautiful with few lines of code.
 
-**WARNING: "MATERIAL FONT" HAS CHANGED**
+## Very important notice:
+
+**TVirtualImageList** (available from D10.3) and **TIconFontsVirtualImageList** both use images from **TIconFontsImageCollection**. An important difference is that TVirtualImageList may use and create only a subset of the images in the collection, whereas TIconFontsVirtualImageList creates all images of the collection everytime it is needed (e,g. DPI change), which is slower and consumes more memory.
+
+We advise that TIconFontsVirtualImageList should be used only for versions of Delphi before 10.3. For recent versions of Delphi the recommended combination should be **TIconFontsImageCollection + TVirtualImageList**. Don't forget also the importance of TVirtualImageList.PreserveItems when you have a large ImageCollection with many linked Actions. Without setting this property to "True", everytime you add or remove an icon in the collection, you have to check and change the ImageIndex of all the Actions.
+
+**Warning: "Material Font" has changed**
 
 Take care of changed Font file used in the Demos from v1.7(VCL)/v1.2(FMX) -> v1.8(VCL)/v1.3(FMX), as explained [here](https://github.com/EtheaDev/IconFontsImageList/wiki/Deploy-Applications). 
 
-If you are using the the old Font, you can automatically convert icons to the new ones as explained [here](https://github.com/EtheaDev/IconFontsImageList/wiki/Convert-Material-Icons).
+If you are using the old Font, you can automatically convert icons to the new ones as explained [here](https://github.com/EtheaDev/IconFontsImageList/wiki/Convert-Material-Icons).
 
 **RELEASE NOTES:**
+05 Sep 2020: version 2.3 (VCL) and 1.5.1 (FMX)
+ - Added demo with VirtualImageList form D10.3 and D10.4
+ - Refactoring to move methods from IconFontsImageList to IconFontsImageCollection
+ - Update IconFontImage to connect also to a VirtualImageList
+ - Fixed some packages and demos for older Delphi versions (Delphi7, DXE3, DXE6, DXE8)
+
+04 Sep 2020: version 2.2.2 (VCL) and 1.5.1 (FMX)
+ - Export Icons in png files into component editor
+ - Updated "Material Design Font Desktop.ttf" font and metadata
+ 
+27 Aug 2020: version 2.2.1 (VCL) and 1.5.0 (FMX)
+ - Complete refactoring for full support of High-DPI
+ - New IconFontsImageCollection component
+ - New IconFontsVirtualImageList component
+ - Redesigned component editor to support Categories for icons
+ - New support for native VirtualImageList (from D10.3)
+ - Fixed some issues
 
 15 July 2020: official 2.1 (VCL) and 1.5 version (FMX)
 - Fixed rendering on TButton!

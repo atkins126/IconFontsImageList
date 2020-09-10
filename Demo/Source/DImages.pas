@@ -1,11 +1,12 @@
 {******************************************************************************}
 {                                                                              }
-{       Icon Fonts ImageList: An extended ImageList for Delphi                 }
+{       Icon Fonts ImageList: An extended ImageList for Delphi/VCL             }
 {       to simplify use of Icons (resize, colors and more...)                  }
 {                                                                              }
 {       Copyright (c) 2019-2020 (Ethea S.r.l.)                                 }
+{       Author: Carlo Barazzetta                                               }
 {       Contributors:                                                          }
-{         Carlo Barazzetta                                                     }
+{         Nicola Tambascia                                                     }
 {                                                                              }
 {       https://github.com/EtheaDev/IconFontsImageList                         }
 {                                                                              }
@@ -24,41 +25,62 @@
 {  limitations under the License.                                              }
 {                                                                              }
 {******************************************************************************}
-unit RegisterIconFontsImageList;
+unit DImages;
 
-{$INCLUDE ..\Source\IconFontsImageList.inc}
+{$INCLUDE IconFontsImageList.inc}
 
 interface
 
 uses
-  Classes
-  , DesignIntf
-  , DesignEditors;
+  WinApi.Windows, Winapi.Messages, System.SysUtils, System.Classes, Vcl.ImgList,
+  UITypes,
+  System.ImageList, //if you are compiling with an older version of Delphi delete this line
+  Vcl.BaseImageCollection, //if you are compiling with an older version of Delphi delete this line
+  IconFontsImageCollection,
+  Vcl.Controls;
 
-procedure Register;
+type
+  TdmImages = class(TDataModule)
+    IconFontsImageCollection: TIconFontsImageCollection;
+    procedure IconFontsImageCollectionFontMissing(const AFontName: TFontName);
+  private
+  public
+  end;
+
+var
+  dmImages: TdmImages;
 
 implementation
 
+{$R *.dfm}
+
 uses
-  IconFontsImageList
-  , IconFontsVirtualImageList
-  , IconFontsImageCollection
-  , IconFontsImage
-  , IconFontsImageListEditor;
+  Vcl.Graphics;
 
-procedure Register;
+procedure TdmImages.IconFontsImageCollectionFontMissing(
+  const AFontName: TFontName);
+var
+  LFontFileName: string;
 begin
-  RegisterComponents('Ethea', [
-    TIconFontImage,
-    TIconFontsImageCollection,
-    TIconFontsVirtualImageList,
-    TIconFontsImageList]);
-
-  RegisterComponentEditor(TIconFontsImageList, TIconFontsImageListCompEditor);
-  RegisterComponentEditor(TIconFontsVirtualImageList, TIconFontsImageListCompEditor);
-  RegisterComponentEditor(TIconFontsImageCollection, TIconFontsImageCollectionCompEditor);
-  RegisterPropertyEditor(TypeInfo(TIconFontsItems), TIconFontsImageList, 'IconFontItems', TIconFontsImageListProperty);
-  RegisterPropertyEditor(TypeInfo(TIconFontsItems), TIconFontsImageCollection, 'IconFontItems', TIconFontsCollectionListProperty);
+  inherited;
+  //The "material desktop font is not installed into system: load and install now from disk
+  LFontFileName := ExtractFilePath(ParamStr(0))+'..\Fonts\Material Design Icons Desktop.ttf';
+  if FileExists(LFontFileName) then
+  begin
+    {$IFNDEF D2010+}
+    AddFontResource(PChar(LFontFileName));
+    {$ELSE}
+    AddFontResource(PWideChar(LFontFileName));
+    {$ENDIF}
+    SendMessage(HWND_BROADCAST, WM_FONTCHANGE, 0, 0);
+  end
+  else
+  begin
+    //If the font file is not available
+    raise Exception.CreateFmt('Warning: "%s" font is not present in your system!'+sLineBreak+
+      'Please download at https://materialdesignicons.com and install it, because this demo is based on this font.',
+        [AFontName]);
+  end;
 end;
 
 end.

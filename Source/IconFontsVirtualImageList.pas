@@ -26,7 +26,7 @@
 {  limitations under the License.                                              }
 {                                                                              }
 {******************************************************************************}
-unit IconFontsImageList;
+unit IconFontsVirtualImageList;
 
 interface
 
@@ -41,23 +41,24 @@ uses
   , Messaging
 {$ENDIF}
   , IconFontsImageListBase
-  , IconFontsItems;
+  , IconFontsItems
+  , IconFontsImageCollection;
 
 type
-  TIconFontsItem = IconFontsItems.TIconFontItem;
-  TIconFontsItems = IconFontsItems.TIconFontItems;
-
-  {TIconFontsImageList}
-  TIconFontsImageList = class(TIconFontsImageListBase)
+  {TIconFontsVirtualImageList}
+  TIconFontsVirtualImageList = class(TIconFontsImageListBase)
   private
-    FIconFontItems: TIconFontItems;
+    FImageCollection: TIconFontsImageCollection;
+    function GetImageCollection: TIconFontsImageCollection;
+    procedure SetImageCollection(const Value: TIconFontsImageCollection);
   protected
     function GetIconFontItems: TIconFontItems; override;
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
   published
-    property IconFontItems;
+    property ImageCollection: TIconFontsImageCollection read GetImageCollection write SetImageCollection;
   end;
 
 
@@ -78,24 +79,56 @@ uses
   , StrUtils
   ;
 
-{ TIconFontsImageList }
+{ TIconFontsVirtualImageList }
 
-constructor TIconFontsImageList.Create(AOwner: TComponent);
+constructor TIconFontsVirtualImageList.Create(AOwner: TComponent);
 begin
-  inherited;
-  FIconFontItems := TIconFontItems.Create(Self, TIconFontItem, OnItemChanged,
-    CheckFontName, GetOwnerAttributes);
-end;
-
-destructor TIconFontsImageList.Destroy;
-begin
-  FreeAndNil(FIconFontItems);
   inherited;
 end;
 
-function TIconFontsImageList.GetIconFontItems: TIconFontItems;
+destructor TIconFontsVirtualImageList.Destroy;
 begin
-  Result := FIconFontItems;
+  inherited;
+end;
+
+function TIconFontsVirtualImageList.GetIconFontItems: TIconFontItems;
+begin
+  if Assigned(FImageCollection) then
+    Result := FImageCollection.IconFontItems
+  else
+    Result := nil;
+end;
+
+function TIconFontsVirtualImageList.GetImageCollection: TIconFontsImageCollection;
+begin
+  Result := FImageCollection;
+end;
+
+procedure TIconFontsVirtualImageList.Notification(AComponent: TComponent;
+  Operation: TOperation);
+begin
+  inherited Notification(AComponent, Operation);
+  if (Operation = opRemove) and (AComponent = FImageCollection) then
+  begin
+    FImageCollection := nil;
+    RecreateBitmaps;
+  end;
+end;
+
+procedure TIconFontsVirtualImageList.SetImageCollection(
+  const Value: TIconFontsImageCollection);
+begin
+  if FImageCollection <> Value then
+  begin
+    FImageCollection := Value;
+    if Assigned(FImageCollection) then
+    begin
+      FImageCollection.UpdateOwnerAttributes := GetOwnerAttributes;
+      FImageCollection.NotifyItemChanged := OnItemChanged;
+      FImageCollection.OnFontMissing := OnFontMissing;
+    end;
+    RecreateBitmaps;
+  end;
 end;
 
 end.
