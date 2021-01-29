@@ -84,6 +84,9 @@ type
     NewFormAction: TAction;
     NewFormButton: TButton;
     VirtualImageList: TVirtualImageList;
+    ZoomPanel: TPanel;
+    ZoomLabel: TLabel;
+    ZoomTrackBar: TTrackBar;
     procedure AssignIconsButtonClick(Sender: TObject);
     procedure ChangeIconActionExecute(Sender: TObject);
     procedure SelectThemeRadioGroupClick(Sender: TObject);
@@ -100,6 +103,7 @@ type
     procedure IconFontImageMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure NewFormActionExecute(Sender: TObject);
+    procedure ZoomTrackBarChange(Sender: TObject);
   private
     FIconFontsVirtualImageListHot: TIconFontsVirtualImageList;
     {$IFDEF HiDPISupport}
@@ -156,7 +160,7 @@ begin
 
     LStart := GetTickCount;
     //Generate Icons
-    LCount := dmImages.IconFontsImageCollection.AddIcons(
+    dmImages.IconFontsImageCollection.AddIcons(
       LRand1, //From Chr
       LRand2, //To Chr
       'Material Design Icons Desktop'
@@ -243,6 +247,8 @@ begin
 
   TrackBar.Position := VirtualImageList.Height;
   TrackBarChange(TrackBar);
+  ZoomTrackBar.Position := (VirtualImageList.ImageCollection as TIconFontsImageCollection).Zoom;
+  IconFontImage.Zoom := ZoomTrackBar.Position;
 end;
 
 procedure TMainForm.IconFontImageMouseDown(Sender: TObject;
@@ -317,6 +323,8 @@ begin
 
   LSize := VirtualImageList.Height;
   IconSizeLabel.Caption := Format('Icons size: %d',[LSize]);
+  ZoomLabel.Caption := Format('Icons Zoom: %d%%',
+    [(VirtualImageList.ImageCollection as TIconFontsImageCollection).Zoom]);
   TopToolBar.ButtonHeight := LSize + 2;
   TopToolBar.ButtonWidth := LSize + 2;
   TopToolBar.Height := LSize + 6;
@@ -341,6 +349,14 @@ begin
     else
       LItem.Text := '';
   end;
+end;
+
+procedure TMainForm.ZoomTrackBarChange(Sender: TObject);
+begin
+  (VirtualImageList.ImageCollection as TIconFontsImageCollection).Zoom :=
+    ZoomTrackBar.Position;
+  IconFontImage.Zoom := ZoomTrackBar.Position;
+  UpdateGUI(False);
 end;
 
 procedure TMainForm.TrackBarChange(Sender: TObject);

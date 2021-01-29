@@ -14,7 +14,7 @@ uses
 type
   TIconFontImageListForm = class(TForm)
     NextButton: TButton;
-    Panel1: TPanel;
+    BottomPanel: TPanel;
     edtColor: TColorComboBox;
     IconFontsImageList: TIconFontsImageList;
     RandomButton: TButton;
@@ -28,7 +28,7 @@ type
     ListBoxItem2: TListBoxItem;
     SpinBox1: TSpinBox;
     ListBoxItem3: TListBoxItem;
-    V: TPanel;
+    TopPanel: TPanel;
     Glyph2: TGlyph;
     Glyph1: TGlyph;
     Glyph: TGlyph;
@@ -116,7 +116,11 @@ end;
 
 procedure TIconFontImageListForm.edtColorChange(Sender: TObject);
 begin
-  IconFontsImageList.UpdateIconAttributes(edtColor.Color, False);
+  //Change colors of any icons that don't have specific color
+  IconFontsImageList.FontColor := edtColor.Color;
+
+  //Change colors of any icons with the new color
+  //IconFontsImageList.UpdateIconAttributes(edtColor.Color, True);
 end;
 
 procedure TIconFontImageListForm.FormCreate(Sender: TObject);

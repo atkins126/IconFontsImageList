@@ -3,7 +3,7 @@
 {       Icon Fonts ImageList: An extended ImageList for Delphi                 }
 {       to simplify use of Icons (resize, colors and more...)                  }
 {                                                                              }
-{       Copyright (c) 2019-2020 (Ethea S.r.l.)                                 }
+{       Copyright (c) 2019-2021 (Ethea S.r.l.)                                 }
 {       Contributors:                                                          }
 {         Carlo Barazzetta                                                     }
 {         Nicola Tambascia                                                     }
@@ -121,6 +121,8 @@ type
     CategoryLabel: TLabel;
     CategoryEdit: TEdit;
     IconLeftMarginPanel: TPanel;
+    ZoomLabel: TLabel;
+    ZoomSpinEdit: TSpinEdit;
     procedure FormCreate(Sender: TObject);
     procedure ApplyButtonClick(Sender: TObject);
     procedure ClearAllButtonClick(Sender: TObject);
@@ -159,6 +161,7 @@ type
     procedure CategoryListBoxClick(Sender: TObject);
     procedure SetCategoriesButtonClick(Sender: TObject);
     procedure CategoryEditExit(Sender: TObject);
+    procedure ZoomSpinEditChange(Sender: TObject);
   private
     FSelectedCategory: string;
     FSourceList, FEditingList: TIconFontsImageListBase;
@@ -311,6 +314,7 @@ begin
         FSourceList.FontName := AImageCollection.FontName;
         FSourceList.FontColor := AImageCollection.FontColor;
         FSourceList.MaskColor := AImageCollection.MaskColor;
+        FSourceList.Zoom := AImageCollection.Zoom;
         ImageListGroupBox.Visible := False;
         FSourceList.IconFontItems.Assign(AImageCollection.IconFontItems);
         FEditingList.Assign(FSourceList);
@@ -327,6 +331,7 @@ begin
           AImageCollection.FontName := DefaultFontName.Text;
           AImageCollection.FontColor := DefaultFontColorColorBox.Selected;
           AImageCollection.MaskColor := DefaultMaskColorColorBox.Selected;
+          AImageCollection.Zoom := ZoomSpinEdit.Value;
         finally
           Screen.Cursor := crDefault;
         end;
@@ -594,6 +599,14 @@ begin
   ShellExecute(Handle, 'open', 'charmap', '', '', SW_SHOWNORMAL);
 end;
 
+procedure TIconFontsImageListEditor.ZoomSpinEditChange(Sender: TObject);
+begin
+  FEditingList.Zoom := ZoomSpinEdit.Value;
+  IconImage.Zoom := ZoomSpinEdit.Value;
+  FChanged := True;
+  UpdateGUI;
+end;
+
 procedure TIconFontsImageListEditor.ImageViewDragDrop(Sender, Source: TObject; X,
   Y: Integer);
 var
@@ -659,6 +672,9 @@ end;
 
 procedure TIconFontsImageListEditor.CloseCharMap(Sender: TObject;
   var Action: TCloseAction);
+var
+  LImageIndex: Integer;  
+  LIconFontItem: TIconFontItem;
 begin
   if FCharMap.ModalResult = mrOK then
   begin
@@ -666,7 +682,17 @@ begin
     begin
       FEditingList.AddIcons(FCharMap.CharsEdit.Text, FCharMap.DefaultFontName.Text);
       FChanged := True;
-      BuildList(ImageView.Items[ImageView.Items.Count-1].ImageIndex);
+      LImageIndex := ImageView.Items.Count-1;
+      if LImageIndex >= 0 then
+        BuildList(ImageView.Items[LImageIndex].ImageIndex)
+      else
+        BuildList(-1);              
+    end
+    else if FCharMap.SelectedIconFont <> nil then
+    begin
+      LIconFontItem := FEditingList.AddIcon(FCharMap.SelectedIconFont.FontIconDec);
+      FChanged := True;
+      BuildList(LIconFontItem.Index);
     end;
   end;
 end;
@@ -770,6 +796,8 @@ begin
   {$IFDEF HasStoreBitmapProperty}
   StoreBitmapCheckBox.Checked := FEditingList.StoreBitmap;
   {$endif}
+  ZoomSpinEdit.Value := FEditingList.Zoom;
+  IconImage.Zoom := FEditingList.Zoom;
   BuildList(0);
   UpdateCharsToBuild;
 end;
